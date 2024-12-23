@@ -33,10 +33,16 @@ class AccountManager():
   def __init__(self, accounts_file_path: str) -> None:
     self._file_path = accounts_file_path
   
+  def IsAccountExists(self, account: str):
+    if account in self.__accounts_data__.keys(): return True
+    else: return False
+  
   def getuserinfo(self, account_no) -> tuple[str, str, float]:
     usrinfo = self.__accounts_data__[account_no][self.LBL_USERINFO]
     return usrinfo[self.LBL_LAST_NAME], usrinfo[self.LBL_INITIALS], usrinfo[self.LBL_BALANCE]
-
+  
+  # What if the file is corrupted? I need to make sure even if its blank it can regenerate at least a save template
+  # Then I can even add the filename to .gitignore
   def loadAccountsData(self):
     accounts_data = {}
     with open(self._file_path, 'r', encoding='utf-8') as file:
@@ -75,7 +81,7 @@ class AccountManager():
 
           # Check for Balance
           elif line.startswith(self.LBL_BALANCE):
-            account[self.LBL_BALANCE] = line[len(self.LBL_BALANCE):].strip()
+            account[self.LBL_BALANCE] = float(line[len(self.LBL_BALANCE):].strip())
             all_info_check += 1
 
           # Check for PIN
@@ -204,6 +210,8 @@ class AccountManager():
         new_history_data[self.LBL_TR_DETAILS] = f"Payment +${amount} from account {fromaccount}, your available balance = ${balance}."
     elif transaction_type == self.LBL_TR_TYPE_DEPOSIT:
       new_history_data[self.LBL_TR_DETAILS] = f"Deposit +${amount} to your account, your available balance = ${balance}."
+    elif transaction_type == self.LBL_TR_TYPE_WITHRAWAL:
+      new_history_data[self.LBL_TR_DETAILS] = f"Withdrawal -${amount} from your account, your available balance = ${balance}."
     
     self.saveAccountsData() # Does this make it less efficient?
     return 'DONE'
@@ -217,28 +225,35 @@ class AccountManager():
     with open(self._file_path, 'w', encoding='utf-8') as file:
       file.write(self.LBL_ACC_REG_START+"\n")
       for account_no in self.__accounts_data__.keys():
-        file.write(self.LBL_ACCOUNTNO+account_no+"\n")
-        file.write(self.LBL_LAST_NAME+self.__accounts_data__[account_no][self.LBL_USERINFO][self.LBL_LAST_NAME]+"\n")
-        file.write(self.LBL_INITIALS+self.__accounts_data__[account_no][self.LBL_USERINFO][self.LBL_INITIALS]+"\n")
-        file.write(self.LBL_BALANCE+self.__accounts_data__[account_no][self.LBL_USERINFO][self.LBL_BALANCE]+"\n")
-        file.write(self.LBL_PIN+self.__accounts_data__[account_no][self.LBL_USERINFO][self.LBL_PIN]+"\n")
+        userinfo = self.__accounts_data__[account_no][self.LBL_USERINFO]
+
+        file.writelines([
+          self.LBL_ACCOUNTNO+account_no+"\n",
+          self.LBL_LAST_NAME+userinfo[self.LBL_LAST_NAME]+"\n",
+          self.LBL_INITIALS+userinfo[self.LBL_INITIALS]+"\n",
+          self.LBL_BALANCE+f"{userinfo[self.LBL_BALANCE]}\n",
+          self.LBL_PIN+userinfo[self.LBL_PIN]+"\n"
+        ])        
       file.write(self.LBL_ACC_REG_END+"\n")
 
       file.write("\n"+self.LBL_TR_HISTORY_REG_START+"\n")
       for account_no in self.__accounts_data__.keys():
-        if type(self.__accounts_data__[account_no][self.LBL_HISTORY]) == type({}):
+        history_data = self.__accounts_data__[account_no][self.LBL_HISTORY]
+        if type(history_data) == type({}):
           file.write(self.LBL_ACCOUNTNO+account_no+"\n")
-          for transaction_id in self.__accounts_data__[account_no][self.LBL_HISTORY].keys():
-            file.write(self.LBL_TR_ID+transaction_id+"\n")
-            file.write(self.LBL_TR_TYPE+self.__accounts_data__[account_no][self.LBL_HISTORY][transaction_id][self.LBL_TR_TYPE]+"\n")
-            file.write(self.LBL_TR_DATETIME+self.__accounts_data__[account_no][self.LBL_HISTORY][transaction_id][self.LBL_TR_DATETIME]+"\n")
-            file.write(self.LBL_TR_AMOUNT+self.__accounts_data__[account_no][self.LBL_HISTORY][transaction_id][self.LBL_TR_AMOUNT]+"\n")
-            if self.__accounts_data__[account_no][self.LBL_HISTORY][transaction_id][self.LBL_TR_TYPE] == self.LBL_TR_TYPE_PAYMENT:
-              if self.LBL_TR_DESTINATION in self.__accounts_data__[account_no][self.LBL_HISTORY][transaction_id].keys():
-                file.write(self.LBL_TR_DESTINATION+self.__accounts_data__[account_no][self.LBL_HISTORY][transaction_id][self.LBL_TR_DESTINATION]+"\n")
+          for transaction_id in history_data.keys():
+            file.writelines([
+              self.LBL_TR_ID+transaction_id+"\n",
+              self.LBL_TR_TYPE+history_data[transaction_id][self.LBL_TR_TYPE]+"\n",
+              self.LBL_TR_DATETIME+history_data[transaction_id][self.LBL_TR_DATETIME]+"\n",
+              self.LBL_TR_AMOUNT+f"{history_data[transaction_id][self.LBL_TR_AMOUNT]}\n"
+            ])
+            if history_data[transaction_id][self.LBL_TR_TYPE] == self.LBL_TR_TYPE_PAYMENT:
+              if self.LBL_TR_DESTINATION in history_data[transaction_id].keys():
+                file.write(self.LBL_TR_DESTINATION+history_data[transaction_id][self.LBL_TR_DESTINATION]+"\n")
               else:
-                file.write(self.LBL_TR_FROM+self.__accounts_data__[account_no][self.LBL_HISTORY][transaction_id][self.LBL_TR_FROM]+"\n")
-            file.write(self.LBL_TR_DETAILS+self.__accounts_data__[account_no][self.LBL_HISTORY][transaction_id][self.LBL_TR_DETAILS]+"\n")
+                file.write(self.LBL_TR_FROM+history_data[transaction_id][self.LBL_TR_FROM]+"\n")
+            file.write(self.LBL_TR_DETAILS+history_data[transaction_id][self.LBL_TR_DETAILS]+"\n")
       file.write(self.LBL_TR_HISTORY_REG_END+"\n")
     
     return

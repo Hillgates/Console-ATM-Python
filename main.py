@@ -10,6 +10,7 @@ def main():
 
 
 if __name__ == '__main__':
+  extf.clear_screen()
   main()
   print("\nPress any key to exit." + Colors.END)
   extf.get_keyboard_press()
