@@ -240,9 +240,9 @@ class AccountManager():
       for account_no in self.__accounts_data__.keys():
         history_data = self.__accounts_data__[account_no][self.LBL_HISTORY]
         if type(history_data) == type({}):
-          file.write(self.LBL_ACCOUNTNO+account_no+"\n")
           for transaction_id in history_data.keys():
             file.writelines([
+              self.LBL_ACCOUNTNO+account_no+"\n",
               self.LBL_TR_ID+transaction_id+"\n",
               self.LBL_TR_TYPE+history_data[transaction_id][self.LBL_TR_TYPE]+"\n",
               self.LBL_TR_DATETIME+history_data[transaction_id][self.LBL_TR_DATETIME]+"\n",
