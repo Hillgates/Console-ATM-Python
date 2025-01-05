@@ -1,16 +1,19 @@
-# HillgateSambo 2024
+# HillgateSambo 2025
 
 from colors import *
-import external_funtions as extf
+from external_funtions import clear_screen, get_keyboard_press
 import interface
 
 def main():
   while True:
-    atmObj = interface.welcome_and_login()
-    if atmObj: interface.main_menu_options(atmObj)
-    extf.clear_screen()
-    print("\nPress '0' to exit or any other key to continue." + Colors.END)
-    if extf.get_keyboard_press() == '0': exit()
+    atmObj = interface.start_menu()
+    if atmObj: 
+      if interface.atm_menu(atmObj):
+        continue
+    clear_screen()
+    print("\nPress any key to exit." + Colors.END)
+    get_keyboard_press()
+    exit(0)
 
-extf.clear_screen()
+clear_screen()
 main()

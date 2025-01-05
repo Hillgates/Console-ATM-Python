@@ -1,4 +1,4 @@
-# HillgateSambo 2024
+# HillgateSambo 2025
 
 
 # These functions are intended to be used in some of my python projects
@@ -6,6 +6,17 @@ import os
 import msvcrt
 import random
 import time
+
+# Printing or outputs
+def fprint(obj: object):
+  print(obj, end='', flush=True)
+
+def fprintln(obj: object):
+  print(obj, flush=True)
+
+def flush_input():
+  while msvcrt.kbhit():
+    msvcrt.getch()
 
 def special_enumerate(iterable: list, indeces: list):
   """
@@ -46,10 +57,8 @@ def clear_screen():
   os.system("cls")
 
 # Function to wait for some amount of time in seconds
-def delay(period: float) -> None:
-  start_time = float(time.time())
-  while ( start_time + period >= float(time.time())):
-    pass # Do nothing until time delay elapses
+def delay(x: float):
+  time.sleep(x)
 
 def print_any_dict(obj: dict, tabsize = 0):
   """Prints a dict, even if nested, will un-nest it (dict only)."""
@@ -93,21 +102,21 @@ def password_input(passwordChar = '*', charsRule = 'a1_', length = 8, showChars=
     if ch == '\x08': # Backspace
       if pos != 0:
         result = result[:-1]
-        print('\x08 \x08', end='') # Yerrrr!! That didnt come easily!
+        fprint('\x08 \x08') # Yerrrr!! That didnt come easily!
         pos -= 1
     elif ch == '\x1b': # Escape
-      return ''
+      break
     elif ch == '' or ch == '\x00': # Some other buttons on my keyboard e.g F1-F12, Insert, etc.
       continue
     elif ch == '\r': # Enter
       if len(result.strip()) > 0 and submitOnEnter == True:
-        return result
+        break
     elif IsCharAllowed(ch, charsRule):
       result += ch
       if showChars:
-        print(ch, end='')
+        fprint(ch)
       else:
-        print(passwordChar, end='')
+        fprint(passwordChar)
       pos += 1
     else:
       continue

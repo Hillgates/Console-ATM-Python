@@ -1,4 +1,4 @@
-# HillgateSambo 2024
+# HillgateSambo 2025
 
 import external_funtions as extf
 import atm_functions
@@ -14,25 +14,107 @@ except ImportError:
   def myprint(word, mychar, width):
     print(mychar + word.center(width) + mychar)
 
-def welcome_and_login():
-  print(Colors.BLUE + "Welcome to the ATM Simulator!" + Colors.WHITE)
-  extf.delay(1.5)
-  account_number = input("Please enter your account number: ")
-  print("Enter your PIN: ", end='')
+def login():
+  atminst = atm_functions.ATM()
+  extf.fprint("Please enter your account number: ")
+  account_number = extf.password_input(showChars=True, charsRule='1', submitOnEnter=True, length=12)
+  extf.fprint("Enter your PIN: ")
   pin = extf.password_input(charsRule='1', length=4)
   print(Colors.LIGHT_GRAY + "Authenticating...")
   extf.delay(1)
-  atminst = atm_functions.ATM()
   if atminst.authenticate(account_number, pin):
-    print(Colors.GREEN + "Login Successful" + Colors.MY_DEFAULT)
-    extf.delay(1)
+    print(Colors.LIGHT_GREEN + "Login Successful" + Colors.MY_DEFAULT)
+    std_wait_delay()
     extf.clear_screen()
     return atminst
   else:
     print(Colors.LIGHT_RED + "Incorrect Login" + Colors.MY_DEFAULT)
+    # Must add 'Forgot Account number' and implement search account number by surname and initials
+    # And maybe forgot password?? But that doesnt look easy
+    std_wait_delay()
     return None
+
+def signup():
+  while True:
+    last_name = input('Enter your last name: ' + Colors.WHITE).strip()
+    if len(last_name) < 2: 
+      print(Colors.RED + "Last name must have atleast 2 characters." + Colors.MY_DEFAULT)
+      continue
+    fcolor(Colors.MY_DEFAULT)
+    break
+  while True:
+    initials = input('Enter your initials: ' + Colors.WHITE).strip()
+    if len(initials) < 1: 
+      print(Colors.RED + "You must have atleast 1 initial." + Colors.MY_DEFAULT)
+      continue
+    fcolor(Colors.MY_DEFAULT)
+    break
+  while True:
+    extf.fprint("Enter pin: " + Colors.WHITE)
+    pin = extf.password_input(charsRule='1', length=4)
+    fcolor(Colors.MY_DEFAULT)
+    extf.fprint("Confirm pin: " + Colors.WHITE)
+    confirm_pin = extf.password_input(charsRule='1', length=4)
+    if pin != confirm_pin: 
+      print(Colors.RED + "Confirmation pin mismatch." + Colors.MY_DEFAULT)
+      std_wait_delay()
+      fcolor(Colors.MY_DEFAULT)
+      continue
+    else: break
+
+  print(Colors.DARK_GRAY + "Creating account..." + Colors.MY_DEFAULT)
+  import account_management
+  atminst = atm_functions.ATM()
+  # Should I just put a method that will call the one im trying to call?
+  acc_mng = account_management.AccountManager(atminst.save_file)
+  acc_mng.loadAccountsData()
+  acc_no = acc_mng.newAccount(last_name, initials, pin)
+  acc_mng.saveAccountsData()
+  std_wait_delay()
+  print(f"{Colors.GREEN}Account created successfully, your account number is {Colors.LIGHT_GREEN + acc_no} {Colors.MY_DEFAULT}")
+  extf.flush_input()
+  print("Do you want to proceed to login? press 'y' to login or any other key to go back.")
+  if extf.get_keyboard_press().lower() == 'y':
+    if atminst.authenticate(acc_no, pin):
+      print(Colors.DARK_GRAY + "Logging you in..." + Colors.MY_DEFAULT)
+      std_wait_delay()
+      return atminst
+  return None
+
+def start_menu():
+  LBL_LOGIN = '1'
+  LBL_SIGNUP = '2'
+  LBL_EXIT = '0'
+  print(Colors.BLUE + "Welcome to the ATM Simulator!" + Colors.WHITE)
+  extf.delay(0.35)
+  while True:
+    print(Colors.WHITE + "What do you want to do?" + Colors.MY_DEFAULT)
+    print(f" {LBL_LOGIN} Login")
+    print(f" {LBL_SIGNUP} Sign Up/Create Account")
+    print(f" {Colors.RED + LBL_EXIT} Exit{Colors.MY_DEFAULT}")
+    extf.fprint("Your choice: ")
+    selected_option = extf.get_keyboard_press()
+    print(selected_option)
     
-def main_menu_options(atmobj: atm_functions.ATM):
+    extf.delay(1)
+    extf.clear_screen()
+    if selected_option == LBL_LOGIN:
+      x = login()
+      if x != None:
+        return x
+    elif selected_option == LBL_SIGNUP:
+      x = signup()
+      if x != None:
+        return x
+    elif selected_option == LBL_EXIT:
+      print(Colors.BROWN + "Exiting..." + Colors.YELLOW + "\n\nThank you for using our services!" + Colors.MY_DEFAULT)
+      std_wait_delay()
+      exit(0)
+    else:
+      continue
+    extf.clear_screen()
+    
+def atm_menu(atmobj: atm_functions.ATM):
   VIEW_BALANCE = '1'
   DEPOSIT = '2'
   WITHDRAW = '3'
@@ -49,7 +131,8 @@ def main_menu_options(atmobj: atm_functions.ATM):
     print(f" {VIEW_TRANSACTION_HISTORY} View Transaction History")
     print(f" {CHANGE_PIN} Change your PIN")
     print(f" {LOGOUT} Logout")
-    print("Your choice: ", end='')
+    extf.flush_input()
+    extf.fprint("Your choice: ")
     selected_option = extf.get_keyboard_press()
     print(selected_option)
     
@@ -58,37 +141,41 @@ def main_menu_options(atmobj: atm_functions.ATM):
 
     if selected_option == VIEW_BALANCE:
       myprint("BALANCE")
-      print(f"Your balance is: {Colors.LIGHT_BLUE}${atmobj.get_balance()}\n\n" + Colors.MY_DEFAULT)
+      print(f"Your balance is: {Colors.LIGHT_BLUE}${atmobj.getBalance()}\n\n" + Colors.MY_DEFAULT)
       std_wait_delay()
       continue
       # Show options from deposit to view tr history, home, logout, quit ??
 
     elif selected_option == DEPOSIT:
       myprint("DEPOSIT")
-      print(f"How much do you want to deposit? {Colors.DARK_GRAY}(Note max 6 digits allowed)\n  {Colors.LIGHT_BLUE}$ ", end='')
+      extf.fprint(f"How much do you want to deposit? {Colors.DARK_GRAY}(Note max 6 digits allowed)\n  {Colors.LIGHT_BLUE}$ ")
       amount = float(extf.password_input(charsRule='1', showChars=True, length=6, submitOnEnter=True)) # Do I need commas?
       fcolor(Colors.MY_DEFAULT)
-      print(f"\nAbout to deposit ${amount} to your account({atmobj.get_account()}).")
-      print(f"  Press {Colors.LIGHT_GREEN}'y' to confirm{Colors.MY_DEFAULT} and any other key to cancel: ", end='')
+      print(f"\nAbout to deposit ${amount} to your account({atmobj.getAccount()}).")
+      extf.fprint(f"  Press {Colors.LIGHT_GREEN}'y' to confirm{Colors.MY_DEFAULT} and any other key to cancel: ")
       if (extf.get_keyboard_press().lower() == 'y'):
         extf.clear_screen()
         print(Colors.DARK_GRAY + "Processing...\n" + Colors.MY_DEFAULT)
         std_wait_delay()
         if atmobj.deposit(amount):
           extf.clear_screen()
-          print(f"Deposited ${amount} to account {atmobj.get_account()}.")
+          print(f"Deposited ${amount} to account {atmobj.getAccount()}.")
         else:
           print(Colors.LIGHT_RED + "Something went wrong." + Colors.MY_DEFAULT)
+      else:
+        print(f"{Colors.RED}Aborted{Colors.MY_DEFAULT}")
+      extf.flush_input()
       print(Colors.DARK_GRAY + "Press any key to return to Home Menu." + Colors.MY_DEFAULT) # I should probably add some functionality here later.
       extf.get_keyboard_press()
 
     elif selected_option == WITHDRAW:
       myprint("WITHDRAWAL")
-      print(f"How much do you want to withdraw? {Colors.DARK_GRAY}(Note max 6 digits allowed)\n  {Colors.LIGHT_BLUE}$ ", end='')
+      extf.fprint(f"How much do you want to withdraw? {Colors.DARK_GRAY}(Note max 6 digits allowed)\n  {Colors.LIGHT_BLUE}$ ")
       amount = float(extf.password_input(charsRule='1', showChars=True, length=6, submitOnEnter=True)) # Do I need commas?
       fcolor(Colors.MY_DEFAULT)
-      print(f"\nAbout to withdraw ${amount} from your account({atmobj.get_account()}).")
-      print(f"  Press {Colors.LIGHT_GREEN}'y' to confirm{Colors.MY_DEFAULT} and any other key to cancel: ", end='')
+      extf.flush_input()
+      print(f"\nAbout to withdraw ${amount} from your account({atmobj.getAccount()}).")
+      extf.fprint(f"  Press {Colors.LIGHT_GREEN}'y' to confirm{Colors.MY_DEFAULT} and any other key to cancel: ")
       if (extf.get_keyboard_press().lower() == 'y'):
         extf.clear_screen()
         print(Colors.DARK_GRAY + "Processing...\n" + Colors.MY_DEFAULT)
@@ -99,18 +186,21 @@ def main_menu_options(atmobj: atm_functions.ATM):
         elif result == "INSUFFICIENT":
           print(Colors.LIGHT_RED + "Ouch! ;(... " + Colors.BROWN + "You have insufficient funds on your account to make a withdrawal." + Colors.MY_DEFAULT)
         else: print(Colors.LIGHT_RED + "Something went wrong!" + Colors.MY_DEFAULT)
+      else:
+        print(f"{Colors.RED}Aborted{Colors.MY_DEFAULT}")
+      extf.flush_input()
       print(Colors.DARK_GRAY + "Press any key to return to Home Menu." + Colors.MY_DEFAULT) # I should probably add some functionality here later.
       extf.get_keyboard_press()
 
     elif selected_option == PAY_BENEFICIARY:
       myprint("PAY BENEFICIARY")
       to_account = input("Enter beneficiary account number: ")
-      if atmobj.IsAccountExists(to_account):
-        print(f"How much do you want to pay? {Colors.DARK_GRAY}(Note max 6 digits allowed)\n  {Colors.LIGHT_BLUE}$ ", end='')
+      if atmobj.isAccountExists(to_account):
+        extf.fprint(f"How much do you want to pay? {Colors.DARK_GRAY}(Note max 6 digits allowed)\n  {Colors.LIGHT_BLUE}$ ")
         amount = float(extf.password_input(charsRule='1', showChars=True, length=6, submitOnEnter=True)) # Do I need commas?
         fcolor(Colors.MY_DEFAULT)
-        print(f"\nAbout to pay ${amount} from your account({atmobj.get_account()}) to account {to_account}.")
-        print(f"  Press {Colors.LIGHT_GREEN}'y' to confirm{Colors.MY_DEFAULT} and any other key to cancel: ", end='')
+        print(f"\nAbout to pay ${amount} from your account({atmobj.getAccount()}) to account {to_account}.")
+        extf.fprint(f"  Press {Colors.LIGHT_GREEN}'y' to confirm{Colors.MY_DEFAULT} and any other key to cancel: ")
         if (extf.get_keyboard_press().lower() == 'y'):
           extf.clear_screen()
           print(Colors.DARK_GRAY + "Processing...\n" + Colors.MY_DEFAULT)
@@ -122,28 +212,33 @@ def main_menu_options(atmobj: atm_functions.ATM):
             print(Colors.LIGHT_RED + "Ouch! ;(... " + Colors.BROWN + "You have insufficient funds on your account to make a payment." + Colors.MY_DEFAULT)
           else:
             print(Colors.LIGHT_RED + "Something went wrong!" + Colors.MY_DEFAULT)
+      else:
+        print(f"{Colors.LIGHT_RED}The account {to_account} does not exist.{Colors.MY_DEFAULT}")
+      extf.flush_input()
       print(Colors.DARK_GRAY + "Press any key to return to Home Menu." + Colors.MY_DEFAULT)
       extf.get_keyboard_press()
 
     elif selected_option == VIEW_TRANSACTION_HISTORY:
       myprint("TRANSACTIONS HISTORY")
-      history = atmobj.get_transactions_history() # Print this in a nice way.
+      history = atmobj.getTransactionsHistory() # Print this in a nice way.
       if history == None:
         print("No Transaction History Found.")
+        std_wait_delay()
         # Do you want to deposit? NOTE: need a function to call first, too much repeating stuff already!
       else:
-        print_transactions_history(atmobj.get_account(), history)
-
+        print_transactions_history(atmobj.getAccount(), history)
+      extf.flush_input()
       print(Colors.DARK_GRAY + "Press any key to return to Home Menu." + Colors.MY_DEFAULT) # I should probably add some functionality here later.
       extf.get_keyboard_press()
 
     elif selected_option == CHANGE_PIN:
       myprint("PIN CHANGE")
-      print("To continue, enter your account pin: ", end='')
-      if atmobj.verify_pin(extf.password_input(charsRule='1', length=4)):
-        print("Enter new 4-digit pin: ", end='')  
+      extf.flush_input()
+      extf.fprint("To continue, enter your account pin: ")
+      if atmobj.verifyPin(extf.password_input(charsRule='1', length=4)):
+        extf.fprint("Enter new 4-digit pin: ")  
         newpin = extf.password_input(charsRule='1', length=4)
-        if atmobj.changepin(newpin):
+        if atmobj.changePin(newpin):
           print(Colors.GREEN + "PIN changed successfully" + Colors.MY_DEFAULT)
         else:
           print(Colors.LIGHT_RED + "Something went wrong, pin could not be changed." + Colors.MY_DEFAULT) # I dont know what to say
@@ -152,12 +247,13 @@ def main_menu_options(atmobj: atm_functions.ATM):
 
     elif selected_option == LOGOUT:
       myprint("LOG OUT")
-      atmobj.logging_out()
+      atmobj.loggingOut()
       print(Colors.BROWN + "Logging out..." + Colors.YELLOW + "\n\nThank you for using our services!" + Colors.MY_DEFAULT)
       std_wait_delay()
-      return # This must probably be break to a logged out menu display, which i havent implemented yet.
+      extf.clear_screen()
+      return True
     
-    else: # Invalid Key Press
+    else:
       print(Colors.RED + "Invalid key pressed." + Colors.MY_DEFAULT)
       std_wait_delay()
     
@@ -195,8 +291,3 @@ def print_transactions_history(account_no, account_history_data: dict):
         print(tab + filler + "From Account: "+transaction[LBL_TR_FROM])
     print(tab + filler + "Details: "+transaction[LBL_TR_DETAILS])
     print("=" * 40)
-
-# I keep pressing run while on other files than the main.py one
-if __name__ == "__main__":
-  with open("main.py", 'r') as file:
-    exec(file.read())
